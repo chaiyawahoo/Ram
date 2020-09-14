@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEditor;
 
 public enum PlayerSkins { RED, GREEN, BLUE, YELLOW, PINK, ORANGE, BLACK, WHITE };
@@ -21,9 +22,11 @@ public class Player : MonoBehaviour {
 
 	public int color;
 
+
 	JoystickHandler joystick;
 	Rigidbody rb;
 	Material[] materials;
+	PlayerInput pInput;
 
 	bool grounded;
 	Vector3 moveDir;
@@ -36,6 +39,7 @@ public class Player : MonoBehaviour {
 	void Awake () {
 		materials = Resources.LoadAll<Material> ("Player_Skins");
 		rb = GetComponent<Rigidbody> ();
+		pInput = GetComponent<PlayerInput> ();
 		GetComponent<MeshRenderer> ().material = materials[Random.Range (0, materials.Length)];
 	}
 
@@ -50,9 +54,6 @@ public class Player : MonoBehaviour {
 	}
 
 	void FixedUpdate () {
-		if (mainPlayer) {
-			HandleInput ();
-		}
 		if (started) {
 			Move ();
 			if (PlayerPrefs.GetInt("Rotate", 0) != 0) {
@@ -104,30 +105,19 @@ public class Player : MonoBehaviour {
 		jumping = false;
 
 		if (!touchControls) {
-			if (Input.GetKey (KeyCode.RightArrow)) {
-				moveDir += Vector3.right;
-			}
-			if (Input.GetKey (KeyCode.LeftArrow)) {
-				moveDir += Vector3.left;
-			}
-			if (Input.GetKey (KeyCode.UpArrow)) {
-				moveDir += Vector3.forward;
-			}
-			if (Input.GetKey (KeyCode.DownArrow)) {
-				moveDir += Vector3.back;
-			}
-			if (Input.GetKeyDown (KeyCode.Space)) {
-				jumping = true;
-			}
+			Vector2 moveInput = pInput.actions["Move"].ReadValue<Vector2> ();
+			moveDir.x = moveInput.x;
+			moveDir.z = moveInput.y;
+			jumping = pInput.actions["Jump"].triggered;
 		} else {
 			foreach (Touch touch in Input.touches) {
 				if (!jumping) {
 					if (!lefty) {
-						if (touch.position.x >= Camera.main.scaledPixelWidth / 2 && touch.phase == TouchPhase.Began) {
+						if (touch.position.x >= Camera.main.scaledPixelWidth / 2 && touch.phase == UnityEngine.TouchPhase.Began) {
 							jumping = true;
 						}
 					} else {
-						if (touch.position.x < Camera.main.scaledPixelWidth / 2 && touch.phase == TouchPhase.Began) {
+						if (touch.position.x < Camera.main.scaledPixelWidth / 2 && touch.phase == UnityEngine.TouchPhase.Began) {
 							jumping = true;
 						}
 					}
@@ -138,9 +128,7 @@ public class Player : MonoBehaviour {
 	}
 
 	void Move () {
-		// if (airborne) {
-			rb.AddForce (moveDir * moveForce);
-		// }
+		rb.AddForce (moveDir * moveForce);
 	}
 
 	void Jump () {
