@@ -18,7 +18,7 @@ public class MainCamera : MonoBehaviour {
 	void Update () {
 		if (Player.started) {
 				// TODO: Use math to find the distance required to see the platform at all times
-				if (PlayerPrefs.GetInt("Shrink", 0) != 0) {
+				if (GameSettings.Instance.shrink) {
 					Zoom ();
 				}
 			}

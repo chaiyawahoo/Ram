@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum PlatformSkins { BLACK, WHITE, CHROME };
-
-// public enum PlatformPhysics { NORMAL, ICY };
-
 public class Platform : MonoBehaviour {
+
+	enum Skins { BLACK, WHITE, CHROME };
+	// enum Physics { NORMAL, ICY, BOUNCY };
 
 	public static float rotateSpeed = 1f;
 
@@ -14,6 +13,7 @@ public class Platform : MonoBehaviour {
 	public static float minSize = 2f;
 
 	// public bool icy;
+	// public bool bouncy;
 
 	Material[] materials;
 	// PhysicMaterial[] physicMaterials;
@@ -35,12 +35,8 @@ public class Platform : MonoBehaviour {
 
 	void FixedUpdate () {
 		if (Player.started) {
-			if (PlayerPrefs.GetInt("Shrink", 0) != 0) {
-				Shrink ();
-			}
-			if (PlayerPrefs.GetInt("Rotate", 0) != 0) {
-				Rotate ();
-			}
+			if (GameSettings.Instance.shrink) Shrink ();
+			if (GameSettings.Instance.rotate) Rotate ();
 		}
 	}
 

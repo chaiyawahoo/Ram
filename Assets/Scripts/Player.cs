@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
+using UnityEngine.InputSystem.OnScreen;
 using UnityEditor;
-
-public enum PlayerSkins { RED, GREEN, BLUE, YELLOW, PINK, ORANGE, BLACK, WHITE };
 
 [RequireComponent (typeof (Rigidbody))]
 public class Player : MonoBehaviour {
+
+ 	enum Skins { RED, GREEN, BLUE, YELLOW, PINK, ORANGE, BLACK, WHITE };
 
 	public static bool started;
 
@@ -17,13 +19,12 @@ public class Player : MonoBehaviour {
 	static float deathThreshold = -5f;
 
 	public bool mainPlayer = false;
-	public bool touchControls = false;
-	public bool lefty = false;
 
 	public int color;
 
 
-	JoystickHandler joystick;
+	OnScreenStick joystick;
+	OnScreenButton jumpButton;
 	Rigidbody rb;
 	Material[] materials;
 	PlayerInput pInput;
@@ -44,7 +45,8 @@ public class Player : MonoBehaviour {
 	}
 
 	void Start () {
-		joystick = GameObject.FindWithTag ("Joystick").GetComponent<JoystickHandler> ();
+		joystick = GameObject.Find ("Joystick").GetComponent<OnScreenStick> ();
+		jumpButton = GameObject.Find ("Jump Button").GetComponent<OnScreenButton> ();
 		grounded = false;
 		color = System.Array.IndexOf (materials, GetComponent<MeshRenderer> ().material);
 		moveDir = Vector3.zero;
@@ -66,7 +68,7 @@ public class Player : MonoBehaviour {
 		if (mainPlayer) {
 			HandleInput ();
 		}
-		if (started && !UIManager.singleton.paused) {
+		if (started && !UIManager.Instance.paused) {
 			Jump ();
 			Die ();
 		}
@@ -96,35 +98,43 @@ public class Player : MonoBehaviour {
 
 	void OnCollisionExit (Collision collision) {
 		if (collision.gameObject.CompareTag("Platform") && airborne) {
+			float platformWidth = collision.collider.bounds.size.x;
+			Transform platformTransform = collision.transform;
+			if (Vector3.Distance(transform.position, platformTransform.position) >= platformWidth / 2) {
+				airborne = true;
+			}
 			grounded = false;
 		}
 	}
 
 	void HandleInput() {
+		Vector2 moveInput = Vector2.zero;
 		moveDir = Vector3.zero;
 		jumping = false;
 
-		if (!touchControls) {
-			Vector2 moveInput = pInput.actions["Move"].ReadValue<Vector2> ();
-			moveDir.x = moveInput.x;
-			moveDir.z = moveInput.y;
-			jumping = pInput.actions["Jump"].triggered;
-		} else {
-			foreach (Touch touch in Input.touches) {
-				if (!jumping) {
-					if (!lefty) {
-						if (touch.position.x >= Camera.main.scaledPixelWidth / 2 && touch.phase == UnityEngine.TouchPhase.Began) {
-							jumping = true;
-						}
-					} else {
-						if (touch.position.x < Camera.main.scaledPixelWidth / 2 && touch.phase == UnityEngine.TouchPhase.Began) {
-							jumping = true;
-						}
-					}
-				}
+		if (GameSettings.Instance.touchControls) {
+			// TODO: create better joystick handler (override onscreenstick)
+			Vector2Control onScreenStick = (Vector2Control)joystick.control;
+			ButtonControl onScreenButton = (ButtonControl)jumpButton.control;
+			if (onScreenStick != null) {
+				moveInput = onScreenStick.ReadValue();
 			}
-			moveDir = new Vector3(joystick.inputDirection.x, 0, joystick.inputDirection.y);
+			jumping = onScreenButton.wasPressedThisFrame;
+		} else {
+			moveInput = pInput.actions["Move"].ReadValue<Vector2> ();
+			jumping = pInput.actions["Jump"].triggered;
 		}
+
+		if (Keyboard.current.lKey.wasPressedThisFrame) {
+			GameSettings.Instance.lefty = !GameSettings.Instance.lefty;
+		}
+
+		if (Keyboard.current.tKey.wasPressedThisFrame) {
+			GameSettings.Instance.touchControls = !GameSettings.Instance.touchControls;
+		}
+
+		moveDir.x = moveInput.x;
+		moveDir.z = moveInput.y;
 	}
 
 	void Move () {
@@ -180,7 +190,7 @@ public class Player : MonoBehaviour {
 
 	void Die () {
 		if (transform.position.y <= deathThreshold) {
-			UIManager.singleton.Restart ();
+			UIManager.Instance.Restart ();
 			Destroy (gameObject);
 		}
 	}

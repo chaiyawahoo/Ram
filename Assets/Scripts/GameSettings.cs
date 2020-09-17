@@ -1,17 +1,34 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class GameSettings : MonoBehaviour {
 
-	public static bool rotate; // platform rotates
-	public static bool shrink; // platform shrinks
+	public bool rotate {
+		get => PlayerPrefs.GetInt("Rotate", 1) == 1;
+		set { PlayerPrefs.SetInt("Rotate", Convert.ToInt32(value)); UpdateUI(); }
+	}
+	public bool shrink {
+		get => PlayerPrefs.GetInt("Shrink", 1) == 1;
+		set { PlayerPrefs.SetInt("Shrink", Convert.ToInt32(value)); UpdateUI(); }
+	}
+	public bool touchControls {
+		get => PlayerPrefs.GetInt("Touch Controls", 0) == 1;
+		set { PlayerPrefs.SetInt("Touch Controls", Convert.ToInt32(value)); UpdateUI(); }
+	}
+	public bool lefty {
+		get => PlayerPrefs.GetInt("Lefty", 0) == 1;
+		set { PlayerPrefs.SetInt("Lefty", Convert.ToInt32(value)); UpdateUI(); }
+	}
 
+	private static GameSettings singleton;
+	public static GameSettings Instance { get { return singleton; } }
 	void Awake () {
-		PlayerPrefs.SetInt("Rotate", 1);
-		PlayerPrefs.SetInt("Shrink", 1);
+		singleton = this;
+	}
 
-		rotate = PlayerPrefs.GetInt("Rotate", 0) != 0;
-		shrink = PlayerPrefs.GetInt("Shrink", 0) != 0;
+	void UpdateUI () {
+		UIManager.Instance.UpdateUI();
 	}
 }
